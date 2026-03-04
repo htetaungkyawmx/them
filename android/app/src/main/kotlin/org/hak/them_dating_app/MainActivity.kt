@@ -1,4 +1,4 @@
-package org.hak.them
+package org.hak.them_dating_app
 
 import io.flutter.embedding.android.FlutterActivity
 

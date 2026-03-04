@@ -1,6 +1,6 @@
 {
-    "name": "them",
-    "short_name": "them",
+    "name": "them_dating_app",
+    "short_name": "them_dating_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
