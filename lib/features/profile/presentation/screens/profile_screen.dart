@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/widgets/custom_button.dart';
-import '../../../core/widgets/profile_image.dart';
-import '../../../core/themes/app_theme.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/profile_image.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../data/models/profile_model.dart';
 import '../controllers/profile_controller.dart';
 import 'edit_profile_screen.dart';
 import 'settings_screen.dart';

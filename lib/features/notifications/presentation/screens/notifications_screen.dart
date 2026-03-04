@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/widgets/profile_image.dart';
-import '../../../core/themes/app_theme.dart';
-import '../controllers/notifications_controller.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../controllers/notifications_controller.dart';
+import '../../data/models/notification_model.dart';
 
 class NotificationsScreen extends StatelessWidget {
   NotificationsScreen({super.key});

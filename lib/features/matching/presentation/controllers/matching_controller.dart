@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
-import '../data/models/match_model.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../auth/data/models/user_model.dart';
+import '../../../profile/data/models/profile_model.dart';
 
 class MatchingController extends GetxController {
   // Loading states

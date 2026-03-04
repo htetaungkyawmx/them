@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/themes/app_theme.dart';
-import '../../matching/presentation/screens/matching_screen.dart';
-import '../../chat/presentation/screens/chat_list_screen.dart';
-import '../../profile/presentation/screens/profile_screen.dart';
-import '../../notifications/presentation/screens/notifications_screen.dart';
-import '../../notifications/controllers/notifications_controller.dart';
+
+import '../../../../core/constants/app_colors.dart';
+import '../../../chat/controllers/chat_controller.dart';
+import '../../../chat/presentation/screens/chat_list_screen.dart';
+import '../../../matching/presentation/screens/matching_screen.dart';
+import '../../../notifications/controllers/notifications_controller.dart';
+import '../../../notifications/presentation/screens/notifications_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,9 +23,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     const MatchingScreen(),
-    const ChatListScreen(),
-    const NotificationsScreen(),
-    const ProfileScreen(),
+    ChatListScreen(),
+    NotificationsScreen(),
+    ProfileScreen(),
   ];
 
   @override

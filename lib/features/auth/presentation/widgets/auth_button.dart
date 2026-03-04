@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/themes/app_theme.dart';
+
 class AuthButton extends StatelessWidget {
   final String icon;
   final String label;
@@ -36,7 +38,7 @@ class AuthButton extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: AppTheme.textPrimary,

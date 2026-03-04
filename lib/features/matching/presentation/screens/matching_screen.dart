@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../../../../core/widgets/profile_image.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/themes/app_theme.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../profile/data/models/profile_model.dart';
 import '../controllers/matching_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 

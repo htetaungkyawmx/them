@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../../core/widgets/custom_button.dart';
-import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/themes/app_theme.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/custom_text_field.dart';
+import '../../data/models/profile_model.dart';
 import '../controllers/profile_controller.dart';
 
 class EditProfileScreen extends StatefulWidget {

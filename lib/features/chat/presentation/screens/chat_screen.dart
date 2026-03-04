@@ -2,11 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../core/widgets/profile_image.dart';
-import '../../../core/themes/app_theme.dart';
-import '../controllers/chat_controller.dart';
+
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/profile_image.dart';
+import '../../controllers/chat_controller.dart';
+import '../../data/models/chat_room_model.dart';
 import '../widgets/message_bubble.dart';
-import '../widgets/typing_indicator.dart';
 
 class ChatScreen extends StatefulWidget {
   final ChatRoomModel room;

@@ -1,3 +1,5 @@
+import 'message_model.dart';
+
 class ChatRoomModel {
   final String id;
   final List<String> participantIds;

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../../core/widgets/profile_image.dart';
-import '../../../core/themes/app_theme.dart';
-import '../controllers/chat_controller.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/widgets/custom_button.dart';
+import '../../../../core/widgets/profile_image.dart';
+import '../../controllers/chat_controller.dart';
+import '../../data/models/chat_room_model.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatelessWidget {
