@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:them_dating_app/data/models/user_model.dart';
@@ -11,7 +10,9 @@ import 'dart:convert';
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   UserModel? _currentUser;
@@ -36,13 +37,6 @@ class AuthProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _rememberMe = prefs.getBool('rememberMe') ?? false;
-
-      if (_rememberMe) {
-        final savedEmail = await _secureStorage.read(key: 'savedEmail');
-        if (savedEmail != null) {
-          // Auto login logic here
-        }
-      }
       notifyListeners();
     } catch (e) {
       print('Error checking saved credentials: $e');
@@ -224,31 +218,54 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Google Sign In
+  // Google Sign In (Updated for better UX)
   Future<bool> signInWithGoogle(BuildContext context) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
+      // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
       if (googleUser == null) {
+        // User canceled sign in
         _isLoading = false;
         notifyListeners();
         return false;
       }
 
+      // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
+      // Sign in to Firebase with the credential
       final userCredential = await _auth.signInWithCredential(credential);
 
       // Save user ID locally
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userCredential.user!.uid);
+
+      // Check if user exists in Firestore, if not create
+      final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+
+      if (!userDoc.exists) {
+        final user = UserModel(
+          id: userCredential.user!.uid,
+          email: userCredential.user!.email ?? '',
+          name: userCredential.user!.displayName,
+          photos: userCredential.user!.photoURL != null ? [userCredential.user!.photoURL!] : [],
+          interests: [],
+          createdAt: DateTime.now(),
+          lastActive: DateTime.now(),
+        );
+        await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -258,6 +275,15 @@ class AuthProvider extends ChangeNotifier {
         _showSnackBar(context, '✅ Signed in with Google!', Colors.green);
       }
       return true;
+    } on FirebaseAuthException catch (e) {
+      _error = e.message;
+      _isLoading = false;
+      notifyListeners();
+
+      if (context.mounted) {
+        _showSnackBar(context, '❌ Google sign in failed: ${e.message}', Colors.red);
+      }
+      return false;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -270,53 +296,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Apple Sign In (iOS)
-  Future<bool> signInWithApple(BuildContext context) async {
-    if (!await SignInWithApple.isAvailable()) {
-      _showSnackBar(context, '❌ Apple Sign In is not available on this device', Colors.red);
-      return false;
-    }
-
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+  // Sign out from Google
+  Future<void> signOutFromGoogle() async {
     try {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
-
-      final oauthCredential = OAuthProvider("apple.com").credential(
-        idToken: credential.identityToken,
-        accessToken: credential.authorizationCode,
-      );
-
-      final userCredential = await _auth.signInWithCredential(oauthCredential);
-
-      // Save user ID locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('userId', userCredential.user!.uid);
-
-      _isLoading = false;
-      notifyListeners();
-
-      if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-        _showSnackBar(context, '✅ Signed in with Apple!', Colors.green);
-      }
-      return true;
+      await _googleSignIn.signOut();
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
-
-      if (context.mounted) {
-        _showSnackBar(context, '❌ Apple sign in failed', Colors.red);
-      }
-      return false;
+      print('Error signing out from Google: $e');
     }
   }
 
@@ -373,11 +358,10 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       if (_currentUser != null) {
-        final updatedUser = _currentUser!.copyWith(phoneNumber: phoneNumber);
         await _firestore.collection('users').doc(_currentUser!.id).update({
           'phoneNumber': phoneNumber,
         });
-        _currentUser = updatedUser;
+        _currentUser = _currentUser!.copyWith(phoneNumber: phoneNumber);
       }
 
       _isLoading = false;
@@ -421,8 +405,10 @@ class AuthProvider extends ChangeNotifier {
         return 'Email already in use';
       case 'weak-password':
         return 'Password is too weak';
+      case 'network-request-failed':
+        return 'Network error. Check your connection.';
       default:
-        return 'Authentication failed';
+        return 'Authentication failed. Please try again.';
     }
   }
 
@@ -434,6 +420,7 @@ class AuthProvider extends ChangeNotifier {
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -441,7 +428,10 @@ class AuthProvider extends ChangeNotifier {
   // Logout
   Future<void> logout(BuildContext context) async {
     try {
-      await _googleSignIn.signOut();
+      // Sign out from Google
+      await signOutFromGoogle();
+
+      // Sign out from Firebase
       await _auth.signOut();
 
       // Clear local user ID

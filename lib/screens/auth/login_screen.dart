@@ -185,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 builder: (context, provider, child) {
                   return CustomButton(
                     text: 'Sign In',
-                    onPressed: provider.isLoading ? () {} : _handleSignIn,
+                    onPressed: provider.isLoading ? () {} : _handleSignIn,  // FIXED: Replace null with empty function
                     isLoading: provider.isLoading,
                   );
                 },
@@ -210,29 +210,41 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 20),
 
-              // Social Login Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildSocialButton(
-                    icon: FontAwesomeIcons.google,
-                    color: Colors.red,
-                    onPressed: () => _handleGoogleSignIn(),
-                  ),
-                  if (Theme.of(context).platform == TargetPlatform.iOS)
-                    _buildSocialButton(
-                      icon: FontAwesomeIcons.apple,
-                      color: Colors.black,
-                      onPressed: () => _handleAppleSignIn(),
+              // Google Sign In Button
+              Consumer<AuthProvider>(
+                builder: (context, provider, child) {
+                  return InkWell(
+                    onTap: provider.isLoading ? null : _handleGoogleSignIn,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FaIcon(
+                            FontAwesomeIcons.google,
+                            color: Colors.red[400],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Continue with Google',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  _buildSocialButton(
-                    icon: FontAwesomeIcons.facebook,
-                    color: Colors.blue[800]!,
-                    onPressed: () {
-                      // Facebook sign in
-                    },
-                  ),
-                ],
+                  );
+                },
               ),
 
               const SizedBox(height: 30),
@@ -254,6 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
@@ -261,30 +274,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: color,
-          size: 24,
         ),
       ),
     );
@@ -333,24 +322,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleAppleSignIn() async {
-    final provider = Provider.of<AuthProvider>(context, listen: false);
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      ),
-    );
-
-    await provider.signInWithApple(context);
-
-    if (mounted) {
-      Navigator.pop(context);
-    }
-  }
-
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
 
@@ -389,6 +360,13 @@ class _LoginScreenState extends State<LoginScreen> {
               if (EmailValidator.validate(emailController.text)) {
                 Navigator.pop(context);
                 _handleForgotPassword(emailController.text);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a valid email'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

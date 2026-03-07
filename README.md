@@ -1,16 +1,69 @@
-# them_dating_app
+# Them Dating App 💕
 
-A new Flutter project.
+A modern, feature-rich dating application built with Flutter, designed to help people find meaningful connections. Them offers a beautiful and intuitive interface with real-time chat, smart matching, and secure authentication.
 
-## Getting Started
+## ✨ Features
 
-This project is a starting point for a Flutter application.
+### 🔐 Authentication
+- Email & Password registration/login
+- Google Sign-In integration
+- Secure session management with Remember Me
+- Password reset functionality
+- Optional phone number field
 
-A few resources to get you started if this is your first Flutter project:
+### 👤 User Profile
+- Create and edit detailed profiles
+- Upload profile pictures
+- Add bio, interests, and preferences
+- View profile statistics (matches, likes, views)
+- Location sharing (optional)
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### 💕 Matching System
+- Browse potential matches with beautiful profile cards
+- Like/Pass functionality
+- Smart matching algorithm
+- View your matches list
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 💬 Real-time Chat
+- Instant messaging with WebSocket
+- Message status (sent/delivered/read)
+- Chat history
+- User online status
+
+### 🎨 Beautiful UI
+- Modern, clean design with gradient themes
+- Smooth animations and transitions
+- Responsive layout for all devices
+- Custom fonts and icons
+
+## 📸 Screenshots
+
+*(Add your app screenshots here)*
+
+## 🛠️ Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Flutter | Frontend framework |
+| Firebase Auth | Authentication |
+| Cloud Firestore | Database |
+| Firebase Storage | Image storage |
+| Provider | State management |
+| WebSocket | Real-time chat |
+| Google Fonts | Typography |
+| Shared Preferences | Local storage |
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have the following installed:
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) (version 3.10.0 or higher)
+- [Android Studio](https://developer.android.com/studio) / [VS Code](https://code.visualstudio.com/)
+- [Firebase Account](https://firebase.google.com/)
+- [Git](https://git-scm.com/)
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/htetaungkyawmx/them_dating_app.git
+cd them_dating_app
