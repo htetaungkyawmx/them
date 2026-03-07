@@ -1,8 +1,8 @@
 class UserModel {
   final String id;
-  final String phoneNumber;
+  final String email;
   final String? name;
-  final String? email;
+  final String? phoneNumber;
   final String? bio;
   final List<String> photos;
   final List<String> interests;
@@ -17,9 +17,9 @@ class UserModel {
 
   UserModel({
     required this.id,
-    required this.phoneNumber,
+    required this.email,
     this.name,
-    this.email,
+    this.phoneNumber,
     this.bio,
     this.photos = const [],
     this.interests = const [],
@@ -36,9 +36,9 @@ class UserModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'phoneNumber': phoneNumber,
-      'name': name,
       'email': email,
+      'name': name,
+      'phoneNumber': phoneNumber,
       'bio': bio,
       'photos': photos,
       'interests': interests,
@@ -56,9 +56,9 @@ class UserModel {
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
       id: map['id'] ?? '',
-      phoneNumber: map['phoneNumber'] ?? '',
+      email: map['email'] ?? '',
       name: map['name'],
-      email: map['email'],
+      phoneNumber: map['phoneNumber'],
       bio: map['bio'],
       photos: List<String>.from(map['photos'] ?? []),
       interests: List<String>.from(map['interests'] ?? []),
@@ -75,9 +75,9 @@ class UserModel {
 
   UserModel copyWith({
     String? id,
-    String? phoneNumber,
-    String? name,
     String? email,
+    String? name,
+    String? phoneNumber,
     String? bio,
     List<String>? photos,
     List<String>? interests,
@@ -92,9 +92,9 @@ class UserModel {
   }) {
     return UserModel(
       id: id ?? this.id,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      name: name ?? this.name,
       email: email ?? this.email,
+      name: name ?? this.name,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       bio: bio ?? this.bio,
       photos: photos ?? this.photos,
       interests: interests ?? this.interests,

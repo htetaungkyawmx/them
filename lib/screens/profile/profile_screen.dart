@@ -34,11 +34,19 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _logout(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.primary,
+        ),
+      ),
+    );
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logout();
-    if (context.mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    }
+    await authProvider.logout(context);
   }
 
   @override
@@ -162,24 +170,47 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
 
-                      // Phone
+                      // Email
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Icon(
-                            Icons.phone,
+                            Icons.email_outlined,
                             size: 16,
                             color: AppColors.textSecondary,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            user.phoneNumber,
+                            user.email,
                             style: TextStyle(
                               color: AppColors.textSecondary,
                             ),
                           ),
                         ],
                       ),
+
+                      // Phone (if available) - FIXED HERE
+                      if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              user.phoneNumber!, // Using ! because we checked above
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
                       const SizedBox(height: 8),
 
                       // Verification Badge

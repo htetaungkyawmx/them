@@ -4,6 +4,14 @@ import 'package:flutter/widgets.dart';
 
 class Assets {
   Assets._();
+
+  static const $AssetsLogoGen logo = $AssetsLogoGen();
+}
+
+class $AssetsLogoGen {
+  const $AssetsLogoGen();
+
+  final AssetGenImage logo = const AssetGenImage('assets/logo/logo.png');
 }
 
 class AssetGenImage {

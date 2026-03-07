@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:them_dating_app/screens/auth/login_screen.dart';
-import 'package:them_dating_app/screens/auth/otp_screen.dart';
 import 'package:them_dating_app/screens/auth/register_screen.dart';
 import 'package:them_dating_app/screens/chat/chat_list_screen.dart';
 import 'package:them_dating_app/screens/chat/chat_screen.dart';
@@ -15,7 +14,6 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
-  static const String otp = '/otp';
   static const String home = '/home';
   static const String profileDetail = '/profile-detail';
   static const String matches = '/matches';
@@ -28,26 +26,28 @@ class AppRoutes {
     switch (settings.name) {
       case splash:
         return MaterialPageRoute(builder: (_) => const SplashScreen());
+
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
+
       case register:
         return MaterialPageRoute(builder: (_) => const RegisterScreen());
-      case otp:
-        final args = settings.arguments as Map<String, String>;
-        return MaterialPageRoute(
-          builder: (_) => OTPScreen(phoneNumber: args['phoneNumber']!),
-        );
+
       case home:
         return MaterialPageRoute(builder: (_) => const HomeScreen());
+
       case profileDetail:
         final userId = settings.arguments as String;
         return MaterialPageRoute(
           builder: (_) => ProfileDetailScreen(userId: userId),
         );
+
       case matches:
         return MaterialPageRoute(builder: (_) => const MatchesScreen());
+
       case chatList:
         return MaterialPageRoute(builder: (_) => const ChatListScreen());
+
       case chat:
         final args = settings.arguments as Map<String, dynamic>;
         return MaterialPageRoute(
@@ -57,10 +57,13 @@ class AppRoutes {
             userName: args['userName'],
           ),
         );
+
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
+
       case editProfile:
         return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

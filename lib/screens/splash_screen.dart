@@ -20,9 +20,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 2)); // Show splash for 2 seconds
+    await Future.delayed(const Duration(seconds: 2));
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loadSavedUser();
 
     if (!mounted) return;
 
