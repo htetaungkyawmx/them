@@ -22,7 +22,6 @@ class AssetGenImage {
 
   final String _assetName;
 
-
   final Size? size;
   final Set<String> flavors;
 
@@ -109,7 +108,6 @@ class SvgGenImage {
   const SvgGenImage(this._assetName);
 
   final String _assetName;
-
 
   Widget custom({
     Key? key,

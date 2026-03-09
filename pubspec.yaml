@@ -9,21 +9,18 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase
   firebase_core: ^3.12.1
   firebase_auth: ^5.5.1
   cloud_firestore: ^5.6.5
   firebase_storage: ^12.4.4
   firebase_messaging: ^15.2.4
 
-  # Google Sign In
   google_sign_in: ^6.3.0
 
-  # Video Call - Use compatible version
   agora_rtc_engine: ^6.3.0
   permission_handler: ^11.3.1
+  flutter_webrtc: ^0.12.1
 
-  # UI
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   font_awesome_flutter: ^10.8.0
@@ -32,26 +29,21 @@ dependencies:
   animations: ^2.0.11
   lottie: ^3.3.1
 
-  # State Management
   provider: ^6.1.2
 
-  # Image & Camera
   image_picker: ^1.1.2
-  image_cropper: ^7.0.1
+  image_cropper: ^8.1.0
 
-  # Local Storage
   shared_preferences: ^2.5.3
   flutter_secure_storage: ^9.2.4
 
-  # Location
   geolocator: ^13.0.3
   geocoding: ^3.0.0
 
-  # Chat
   web_socket_channel: ^3.0.2
+
   emoji_picker_flutter: ^4.4.0
 
-  # Utils
   intl: ^0.20.2
   uuid: ^4.5.1
   email_validator: ^3.0.0
@@ -59,7 +51,6 @@ dependencies:
   url_launcher: ^6.3.1
   path_provider: ^2.1.5
 
-  # Add dependency override to resolve web version conflict
 dependency_overrides:
   web: ^1.1.0
 
