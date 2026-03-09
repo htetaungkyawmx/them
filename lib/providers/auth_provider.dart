@@ -10,9 +10,11 @@ import 'dart:convert';
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
   );
+
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   UserModel? _currentUser;
@@ -53,9 +55,26 @@ class AuthProvider extends ChangeNotifier {
       final savedUserId = prefs.getString('userId');
 
       if (savedUserId != null) {
-        final doc = await _firestore.collection('users').doc(savedUserId).get();
-        if (doc.exists) {
-          _currentUser = UserModel.fromMap(doc.data()!);
+        try {
+          final doc = await _firestore.collection('users').doc(savedUserId).get();
+          if (doc.exists) {
+            final userData = doc.data() as Map<String, dynamic>;
+            _currentUser = UserModel.fromMap(userData);
+            print('✅ User loaded from local storage: ${_currentUser?.email}');
+          }
+        } catch (e) {
+          print('⚠️ Firestore error in loadSavedUser: $e');
+          // If Firestore fails, still try to use local data
+          final userJson = prefs.getString('userData');
+          if (userJson != null) {
+            try {
+              final userData = json.decode(userJson);
+              _currentUser = UserModel.fromMap(userData);
+              print('✅ User loaded from SharedPreferences');
+            } catch (e) {
+              print('❌ Error parsing user data: $e');
+            }
+          }
         }
       }
     } catch (e) {
@@ -68,17 +87,39 @@ class AuthProvider extends ChangeNotifier {
 
   // Auth state listener
   void _onAuthStateChanged(User? firebaseUser) async {
+    print('🔄 Auth state changed: ${firebaseUser?.email ?? 'Logged out'}');
+
     if (firebaseUser != null) {
       _isLoading = true;
       notifyListeners();
 
       try {
-        final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
-        if (doc.exists) {
-          _currentUser = UserModel.fromMap(doc.data()!);
-        } else {
-          // Create user document if not exists
-          final user = UserModel(
+        try {
+          final doc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+          if (doc.exists) {
+            final userData = doc.data() as Map<String, dynamic>;
+            _currentUser = UserModel.fromMap(userData);
+            print('✅ User loaded from Firestore: ${_currentUser?.email}');
+          } else {
+            // Create user document if not exists
+            final user = UserModel(
+              id: firebaseUser.uid,
+              email: firebaseUser.email ?? '',
+              name: firebaseUser.displayName,
+              phoneNumber: firebaseUser.phoneNumber,
+              photos: firebaseUser.photoURL != null ? [firebaseUser.photoURL!] : [],
+              interests: [],
+              createdAt: DateTime.now(),
+              lastActive: DateTime.now(),
+            );
+            await _firestore.collection('users').doc(firebaseUser.uid).set(user.toMap());
+            _currentUser = user;
+            print('✅ New user created in Firestore: ${user.email}');
+          }
+        } catch (e) {
+          print('⚠️ Firestore error in auth state change: $e');
+          // Still create user model even if Firestore fails
+          _currentUser = UserModel(
             id: firebaseUser.uid,
             email: firebaseUser.email ?? '',
             name: firebaseUser.displayName,
@@ -88,11 +129,10 @@ class AuthProvider extends ChangeNotifier {
             createdAt: DateTime.now(),
             lastActive: DateTime.now(),
           );
-          await _firestore.collection('users').doc(firebaseUser.uid).set(user.toMap());
-          _currentUser = user;
         }
       } catch (e) {
         _error = e.toString();
+        print('❌ Error in auth state change: $e');
       }
 
       _isLoading = false;
@@ -116,6 +156,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print('📝 Creating account for: $email');
+
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -137,11 +179,18 @@ class AuthProvider extends ChangeNotifier {
         lastActive: DateTime.now(),
       );
 
-      await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
+      try {
+        await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
+        print('✅ User saved to Firestore');
+      } catch (e) {
+        print('⚠️ Could not save to Firestore: $e');
+        // Continue even if Firestore fails
+      }
 
       // Save user ID locally
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userCredential.user!.uid);
+      await prefs.setString('userData', json.encode(user.toMap()));
 
       _currentUser = user;
 
@@ -161,6 +210,8 @@ class AuthProvider extends ChangeNotifier {
       _error = _getErrorMessage(e.code);
       _isLoading = false;
       notifyListeners();
+
+      print('❌ Sign up error: ${e.code} - ${e.message}');
 
       if (context != null && context.mounted) {
         _showSnackBar(context, '❌ ${_getErrorMessage(e.code)}', Colors.red);
@@ -182,6 +233,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print('🔐 Signing in: $email');
+
       final userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
@@ -211,6 +264,8 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
+      print('❌ Sign in error: ${e.code} - ${e.message}');
+
       if (context != null && context.mounted) {
         _showSnackBar(context, '❌ ${_getErrorMessage(e.code)}', Colors.red);
       }
@@ -218,22 +273,29 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Google Sign In (Updated for better UX)
+  // Google Sign In
   Future<bool> signInWithGoogle(BuildContext context) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
+      print('🌐 Starting Google Sign In');
+
+      // Sign out first to ensure account selection
+      await _googleSignIn.signOut();
+
       // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        // User canceled sign in
         _isLoading = false;
         notifyListeners();
+        print('ℹ️ Google sign in cancelled by user');
         return false;
       }
+
+      print('✅ Google user selected: ${googleUser.email}');
 
       // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -247,24 +309,32 @@ class AuthProvider extends ChangeNotifier {
       // Sign in to Firebase with the credential
       final userCredential = await _auth.signInWithCredential(credential);
 
+      print('✅ Firebase sign in successful: ${userCredential.user?.email}');
+
       // Save user ID locally
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userCredential.user!.uid);
 
-      // Check if user exists in Firestore, if not create
-      final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
+      // Try to save to Firestore, but continue even if it fails
+      try {
+        final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
 
-      if (!userDoc.exists) {
-        final user = UserModel(
-          id: userCredential.user!.uid,
-          email: userCredential.user!.email ?? '',
-          name: userCredential.user!.displayName,
-          photos: userCredential.user!.photoURL != null ? [userCredential.user!.photoURL!] : [],
-          interests: [],
-          createdAt: DateTime.now(),
-          lastActive: DateTime.now(),
-        );
-        await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
+        if (!userDoc.exists) {
+          final user = UserModel(
+            id: userCredential.user!.uid,
+            email: userCredential.user!.email ?? '',
+            name: userCredential.user!.displayName,
+            photos: userCredential.user!.photoURL != null ? [userCredential.user!.photoURL!] : [],
+            interests: [],
+            createdAt: DateTime.now(),
+            lastActive: DateTime.now(),
+          );
+          await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
+          print('✅ New user created in Firestore from Google');
+        }
+      } catch (e) {
+        print('⚠️ Could not access Firestore: $e');
+        // Continue anyway - user is authenticated
       }
 
       _isLoading = false;
@@ -275,33 +345,17 @@ class AuthProvider extends ChangeNotifier {
         _showSnackBar(context, '✅ Signed in with Google!', Colors.green);
       }
       return true;
-    } on FirebaseAuthException catch (e) {
-      _error = e.message;
-      _isLoading = false;
-      notifyListeners();
-
-      if (context.mounted) {
-        _showSnackBar(context, '❌ Google sign in failed: ${e.message}', Colors.red);
-      }
-      return false;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
 
+      print('❌ Google sign in error: $e');
+
       if (context.mounted) {
-        _showSnackBar(context, '❌ Google sign in failed', Colors.red);
+        _showSnackBar(context, '❌ Google sign in failed: ${e.toString()}', Colors.red);
       }
       return false;
-    }
-  }
-
-  // Sign out from Google
-  Future<void> signOutFromGoogle() async {
-    try {
-      await _googleSignIn.signOut();
-    } catch (e) {
-      print('Error signing out from Google: $e');
     }
   }
 
@@ -330,12 +384,20 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _firestore.collection('users').doc(updatedUser.id).update(updatedUser.toMap());
+      try {
+        await _firestore.collection('users').doc(updatedUser.id).update(updatedUser.toMap());
+      } catch (e) {
+        print('⚠️ Could not update Firestore: $e');
+      }
 
       // Update Firebase Auth display name if changed
       if (updatedUser.name != _currentUser?.name) {
         await _auth.currentUser?.updateDisplayName(updatedUser.name);
       }
+
+      // Save to local storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userData', json.encode(updatedUser.toMap()));
 
       _currentUser = updatedUser;
 
@@ -358,10 +420,18 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       if (_currentUser != null) {
-        await _firestore.collection('users').doc(_currentUser!.id).update({
-          'phoneNumber': phoneNumber,
-        });
+        try {
+          await _firestore.collection('users').doc(_currentUser!.id).update({
+            'phoneNumber': phoneNumber,
+          });
+        } catch (e) {
+          print('⚠️ Could not update Firestore: $e');
+        }
         _currentUser = _currentUser!.copyWith(phoneNumber: phoneNumber);
+
+        // Save to local storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userData', json.encode(_currentUser!.toMap()));
       }
 
       _isLoading = false;
@@ -428,13 +498,11 @@ class AuthProvider extends ChangeNotifier {
   // Logout
   Future<void> logout(BuildContext context) async {
     try {
-      // Sign out from Google
-      await signOutFromGoogle();
+      print('🚪 Logging out...');
 
-      // Sign out from Firebase
+      await _googleSignIn.signOut();
       await _auth.signOut();
 
-      // Clear local user ID
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('userId');
 
@@ -445,7 +513,10 @@ class AuthProvider extends ChangeNotifier {
         Navigator.pushReplacementNamed(context, '/login');
         _showSnackBar(context, '👋 Logged out successfully', Colors.blue);
       }
+
+      print('✅ Logout successful');
     } catch (e) {
+      print('❌ Logout error: $e');
       if (context.mounted) {
         _showSnackBar(context, '❌ Logout failed', Colors.red);
       }

@@ -291,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      await provider.signInWithEmail(
+      final success = await provider.signInWithEmail(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         rememberMe: _rememberMe,
@@ -299,7 +299,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Close loading dialog
+
+        if (!success) {
+          // Show error message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.error ?? 'Login failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
@@ -315,10 +325,20 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
 
-    await provider.signInWithGoogle(context);
+    final success = await provider.signInWithGoogle(context);
 
     if (mounted) {
-      Navigator.pop(context);
+      Navigator.pop(context); // Close loading dialog
+
+      if (!success) {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Google sign in failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

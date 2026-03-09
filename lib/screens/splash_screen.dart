@@ -20,16 +20,22 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2)); // Show splash for 2 seconds
+
+    if (!mounted) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     await authProvider.loadSavedUser();
 
     if (!mounted) return;
 
+    print('🔍 Checking login status: ${authProvider.isAuthenticated}');
+
     if (authProvider.isAuthenticated) {
+      print('➡️ Navigating to Home');
       Navigator.pushReplacementNamed(context, AppRoutes.home);
     } else {
+      print('➡️ Navigating to Login');
       Navigator.pushReplacementNamed(context, AppRoutes.login);
     }
   }

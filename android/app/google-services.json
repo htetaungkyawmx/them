@@ -12,7 +12,20 @@
           "package_name": "org.hak.them_dating_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "176595574923-3v7tbkks5tkb946g249666gcu9nm5gs0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.hak.them_dating_app",
+            "certificate_hash": "21d04904f3b6b501dddad7218580f106d06cc7b5"
+          }
+        },
+        {
+          "client_id": "176595574923-lg8n7sg7bbvmnfecbgikm9lpmc79m552.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDpHBtnn8NgTnVbpkxqhXmIZG5Z8xc9Blg"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "176595574923-lg8n7sg7bbvmnfecbgikm9lpmc79m552.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

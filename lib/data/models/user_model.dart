@@ -14,6 +14,9 @@ class UserModel {
   final bool isVerified;
   final DateTime createdAt;
   final DateTime lastActive;
+  final Map<String, dynamic>? preferences; // For matching algorithm
+  final int? distance; // in km
+  final bool isOnline;
 
   UserModel({
     required this.id,
@@ -31,6 +34,9 @@ class UserModel {
     this.isVerified = false,
     required this.createdAt,
     required this.lastActive,
+    this.preferences,
+    this.distance,
+    this.isOnline = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -50,6 +56,8 @@ class UserModel {
       'isVerified': isVerified,
       'createdAt': createdAt.toIso8601String(),
       'lastActive': lastActive.toIso8601String(),
+      'preferences': preferences,
+      'isOnline': isOnline,
     };
   }
 
@@ -70,6 +78,8 @@ class UserModel {
       isVerified: map['isVerified'] ?? false,
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       lastActive: DateTime.parse(map['lastActive'] ?? DateTime.now().toIso8601String()),
+      preferences: map['preferences'],
+      isOnline: map['isOnline'] ?? false,
     );
   }
 
@@ -89,6 +99,9 @@ class UserModel {
     bool? isVerified,
     DateTime? createdAt,
     DateTime? lastActive,
+    Map<String, dynamic>? preferences,
+    int? distance,
+    bool? isOnline,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -106,6 +119,8 @@ class UserModel {
       isVerified: isVerified ?? this.isVerified,
       createdAt: createdAt ?? this.createdAt,
       lastActive: lastActive ?? this.lastActive,
+      preferences: preferences ?? this.preferences,
+      isOnline: isOnline ?? this.isOnline,
     );
   }
 }

@@ -6,6 +6,8 @@ class MatchModel {
   final DateTime createdAt;
   final DateTime? lastMessageAt;
   final String? lastMessage;
+  final bool isLiked; // For current user's like status
+  final bool isMatched;
 
   MatchModel({
     required this.id,
@@ -15,6 +17,8 @@ class MatchModel {
     required this.createdAt,
     this.lastMessageAt,
     this.lastMessage,
+    this.isLiked = false,
+    this.isMatched = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +30,8 @@ class MatchModel {
       'createdAt': createdAt.toIso8601String(),
       'lastMessageAt': lastMessageAt?.toIso8601String(),
       'lastMessage': lastMessage,
+      'isLiked': isLiked,
+      'isMatched': isMatched,
     };
   }
 
@@ -40,6 +46,8 @@ class MatchModel {
           ? DateTime.parse(map['lastMessageAt'])
           : null,
       lastMessage: map['lastMessage'],
+      isLiked: map['isLiked'] ?? false,
+      isMatched: map['isMatched'] ?? false,
     );
   }
 }

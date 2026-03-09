@@ -21,6 +21,7 @@ class ProfileCard extends StatefulWidget {
 
 class _ProfileCardState extends State<ProfileCard> {
   int _currentImageIndex = 0;
+  final PageController _pageController = PageController();
 
   @override
   Widget build(BuildContext context) {
@@ -28,176 +29,224 @@ class _ProfileCardState extends State<ProfileCard> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Profile Image
+          // Profile Card
           Expanded(
-            child: Stack(
-              children: [
-                // Image
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: widget.user.photos.isNotEmpty
-                        ? CachedNetworkImage(
-                      imageUrl: widget.user.photos[_currentImageIndex],
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      placeholder: (context, url) => Container(
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  children: [
+                    // Image Carousel
+                    if (widget.user.photos.isNotEmpty)
+                      PageView.builder(
+                        controller: _pageController,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentImageIndex = index;
+                          });
+                        },
+                        itemCount: widget.user.photos.length,
+                        itemBuilder: (context, index) {
+                          return CachedNetworkImage(
+                            imageUrl: widget.user.photos[index],
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey[300],
+                              child: const Icon(
+                                Icons.broken_image,
+                                size: 50,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    else
+                      Container(
                         color: Colors.grey[300],
                         child: const Center(
-                          child: CircularProgressIndicator(),
+                          child: Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                        : Container(
-                      color: Colors.grey[300],
-                      child: const Center(
-                        child: Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.grey,
+
+                    // Gradient Overlay
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.8),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                // Image indicators
-                if (widget.user.photos.length > 1)
-                  Positioned(
-                    top: 20,
-                    left: 20,
-                    right: 20,
-                    child: Row(
-                      children: List.generate(
-                        widget.user.photos.length,
-                            (index) => Expanded(
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            height: 3,
-                            decoration: BoxDecoration(
-                              color: _currentImageIndex == index
-                                  ? Colors.white
-                                  : Colors.white.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(2),
+
+                    // Image Indicators
+                    if (widget.user.photos.length > 1)
+                      Positioned(
+                        top: 16,
+                        left: 16,
+                        right: 16,
+                        child: Row(
+                          children: List.generate(
+                            widget.user.photos.length,
+                                (index) => Expanded(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 2),
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: _currentImageIndex == index
+                                      ? Colors.white
+                                      : Colors.white.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                // Navigation buttons
-                if (widget.user.photos.length > 1)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _currentImageIndex = _currentImageIndex > 0
-                                  ? _currentImageIndex - 1
-                                  : widget.user.photos.length - 1;
-                            });
-                          },
-                          child: Container(
-                            height: double.infinity,
-                            color: Colors.transparent,
+
+                    // User Info
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      right: 20,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '${widget.user.name ?? 'User'}, ${widget.user.age ?? ''}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (widget.user.isVerified)
+                                const Icon(
+                                  Icons.verified,
+                                  color: Colors.blue,
+                                  size: 20,
+                                ),
+                            ],
                           ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _currentImageIndex = _currentImageIndex < widget.user.photos.length - 1
-                                  ? _currentImageIndex + 1
-                                  : 0;
-                            });
-                          },
-                          child: Container(
-                            height: double.infinity,
-                            color: Colors.transparent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                // User info overlay
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(20),
-                        bottomRight: Radius.circular(20),
-                      ),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.8),
+                          const SizedBox(height: 4),
+
+                          // Distance
+                          if (widget.user.distance != null)
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on,
+                                  color: Colors.white70,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${widget.user.distance} km away',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                          const SizedBox(height: 8),
+
+                          // Bio
+                          if (widget.user.bio != null && widget.user.bio!.isNotEmpty)
+                            Text(
+                              widget.user.bio!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+
+                          const SizedBox(height: 8),
+
+                          // Interests
+                          if (widget.user.interests.isNotEmpty)
+                            Wrap(
+                              spacing: 8,
+                              children: widget.user.interests.take(3).map((interest) {
+                                return Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    interest,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
                         ],
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${widget.user.name ?? 'User'}, ${widget.user.age ?? ''}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (widget.user.bio != null)
-                          Text(
-                            widget.user.bio!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
+
           const SizedBox(height: 20),
-          // Action buttons
+
+          // Action Buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              // Pass Button
               _buildActionButton(
                 icon: Icons.close,
                 color: Colors.red,
                 onPressed: widget.onPass,
                 size: 60,
               ),
+
+              // Like Button
               _buildActionButton(
                 icon: Icons.favorite,
                 color: Colors.green,
@@ -238,7 +287,14 @@ class _ProfileCardState extends State<ProfileCard> {
           size: size * 0.5,
         ),
         onPressed: onPressed,
+        iconSize: size * 0.5,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 }
