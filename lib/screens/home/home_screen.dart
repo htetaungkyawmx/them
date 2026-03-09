@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   late final List<Widget> _screens;
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -39,9 +40,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final matchProvider = Provider.of<MatchProvider>(context, listen: false);
 
     if (authProvider.currentUser != null) {
-      await matchProvider.getCurrentLocation();
-      await matchProvider.loadPotentialMatches(authProvider.currentUser!.id);
-      await matchProvider.loadMatches(authProvider.currentUser!.id);
+      try {
+        // Try to get location, but don't fail if it doesn't work
+        await matchProvider.getCurrentLocation();
+        await matchProvider.loadPotentialMatches(authProvider.currentUser!.id);
+        await matchProvider.loadMatches(authProvider.currentUser!.id);
+      } catch (e) {
+        print('Error loading data: $e');
+        setState(() {
+          _errorMessage = 'Failed to load some data';
+        });
+      }
     }
 
     setState(() {
@@ -55,6 +64,34 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 60, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Something went wrong', style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              Text(_errorMessage!),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _errorMessage = null;
+                    _isLoading = true;
+                  });
+                  _loadInitialData();
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       );
     }

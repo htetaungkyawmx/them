@@ -21,7 +21,6 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _rememberMe = false;
-  bool _isNavigating = false; // ထပ်ခါထပ်ခါ navigation မဖြစ်အောင်
 
   // Getters
   UserModel? get currentUser => _currentUser;
@@ -145,14 +144,6 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      // Auto navigate to home after successful auth
-      if (!_isNavigating) {
-        _isNavigating = true;
-        // We'll let the UI handle navigation
-        Future.delayed(const Duration(milliseconds: 100), () {
-          _isNavigating = false;
-        });
-      }
     } else {
       _currentUser = null;
       notifyListeners();
@@ -220,10 +211,15 @@ class AuthProvider extends ChangeNotifier {
 
       // Navigate to home immediately
       if (context != null && context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/home',
-                (route) => false
-        );
+        // Small delay to ensure state is updated
+        Future.microtask(() {
+          if (context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+                '/home',
+                    (route) => false
+            );
+          }
+        });
         _showSnackBar(context, '✅ Account created successfully!', Colors.green);
       }
       return true;
@@ -279,10 +275,14 @@ class AuthProvider extends ChangeNotifier {
 
       // Navigate to home immediately
       if (context != null && context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/home',
-                (route) => false
-        );
+        Future.microtask(() {
+          if (context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+                '/home',
+                    (route) => false
+            );
+          }
+        });
         _showSnackBar(context, '✅ Welcome back!', Colors.green);
       }
       return true;
@@ -301,7 +301,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Google Sign In (Fixed)
+  // Google Sign In (FIXED - No navigation flags)
   Future<bool> signInWithGoogle(BuildContext context) async {
     if (_isLoading) return false;
 
@@ -312,10 +312,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       print('🌐 Starting Google Sign In');
 
-      // Sign out first to ensure account selection
-      await _googleSignIn.signOut();
-
-      // Trigger the authentication flow
+      // Try to sign in directly
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -374,10 +371,14 @@ class AuthProvider extends ChangeNotifier {
 
       // Navigate to home immediately
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/home',
-                (route) => false
-        );
+        Future.microtask(() {
+          if (context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+                '/home',
+                    (route) => false
+            );
+          }
+        });
         _showSnackBar(context, '✅ Signed in with Google!', Colors.green);
       }
       return true;
@@ -448,6 +449,36 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Update phone number (Optional)
+  Future<void> updatePhoneNumber(String phoneNumber, BuildContext context) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      if (_currentUser != null) {
+        try {
+          await _firestore.collection('users').doc(_currentUser!.id).update({
+            'phoneNumber': phoneNumber,
+          });
+        } catch (e) {
+          print('⚠️ Could not update Firestore: $e');
+        }
+        _currentUser = _currentUser!.copyWith(phoneNumber: phoneNumber);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userData', json.encode(_currentUser!.toMap()));
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      _showSnackBar(context, '✅ Phone number updated', Colors.green);
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      _showSnackBar(context, '❌ Failed to update phone number', Colors.red);
+    }
+  }
+
   // Save credentials
   Future<void> _saveCredentials(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
@@ -499,7 +530,7 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
-  // Logout
+  // Logout (Manual logout only)
   Future<void> logout(BuildContext context) async {
     try {
       print('🚪 Logging out...');
@@ -510,15 +541,20 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('userId');
       await prefs.remove('userData');
+      await prefs.remove('rememberMe');
 
       _currentUser = null;
       notifyListeners();
 
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-            '/login',
-                (route) => false
-        );
+        Future.microtask(() {
+          if (context.mounted) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+                '/login',
+                    (route) => false
+            );
+          }
+        });
         _showSnackBar(context, '👋 Logged out successfully', Colors.blue);
       }
 
