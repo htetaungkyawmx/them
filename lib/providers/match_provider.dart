@@ -13,6 +13,7 @@ class MatchProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   Position? _currentPosition;
+  bool _hasLocationPermission = false;
 
   // Getters
   List<UserModel> get potentialMatches => _potentialMatches;
@@ -21,33 +22,52 @@ class MatchProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   Position? get currentPosition => _currentPosition;
+  bool get hasLocationPermission => _hasLocationPermission;
 
-  // Get current location
+  // Get current location with better error handling (FIXED for geolocator)
   Future<void> getCurrentLocation() async {
     try {
+      // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        print('⚠️ Location services are disabled');
+        _hasLocationPermission = false;
+        notifyListeners();
         return;
       }
 
+      // Check permission
       LocationPermission permission = await Geolocator.checkPermission();
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
+          print('⚠️ Location permissions are denied');
+          _hasLocationPermission = false;
+          notifyListeners();
           return;
         }
       }
 
-      _currentPosition = await Geolocator.getCurrentPosition();
-      notifyListeners();
-    } catch (e) {
-      print('Error getting location: $e');
-    }
-  }
+      if (permission == LocationPermission.deniedForever) {
+        print('⚠️ Location permissions are permanently denied');
+        _hasLocationPermission = false;
+        notifyListeners();
+        return;
+      }
 
-  // Calculate distance between two users
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / 1000; // Convert to km
+      // Get current position (FIXED: using simpler approach)
+      _currentPosition = await Geolocator.getCurrentPosition();
+
+      _hasLocationPermission = true;
+      print('✅ Location obtained: ${_currentPosition?.latitude}, ${_currentPosition?.longitude}');
+      notifyListeners();
+
+    } catch (e) {
+      print('⚠️ Error getting location: $e');
+      _hasLocationPermission = false;
+      // Don't throw error, just continue without location
+    }
   }
 
   // Load potential matches based on preferences
@@ -63,9 +83,13 @@ class MatchProvider extends ChangeNotifier {
     try {
       // Get current user data
       final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
-      if (!currentUserDoc.exists) return;
+      if (!currentUserDoc.exists) {
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
 
-      final currentUser = UserModel.fromMap(currentUserDoc.data()!);
+      final currentUser = UserModel.fromMap(currentUserDoc.data() as Map<String, dynamic>);
 
       // Get already liked/rejected users
       final likedSnapshot = await _firestore
@@ -77,17 +101,11 @@ class MatchProvider extends ChangeNotifier {
           .map((doc) => doc['userId2'] as String)
           .toList();
 
-      excludedIds.add(currentUserId); // Exclude self
+      excludedIds.add(currentUserId);
 
       // Query potential matches
       Query query = _firestore.collection('users');
 
-      // Filter by age
-      if (ageMin > 0) {
-        // Note: You'll need to store age in Firestore or calculate from DOB
-      }
-
-      // Filter by gender preference
       if (gender != null && gender != 'Everyone') {
         query = query.where('gender', isEqualTo: gender);
       }
@@ -98,21 +116,21 @@ class MatchProvider extends ChangeNotifier {
       for (var doc in snapshot.docs) {
         if (excludedIds.contains(doc.id)) continue;
 
-        // FIXED: Use doc.data() as Map<String, dynamic>
         final userData = doc.data() as Map<String, dynamic>;
         UserModel user = UserModel.fromMap(userData);
 
         // Calculate distance if location available
-        if (currentUser.latitude != null &&
+        if (_hasLocationPermission &&
+            currentUser.latitude != null &&
             currentUser.longitude != null &&
             user.latitude != null &&
             user.longitude != null) {
-          double distance = _calculateDistance(
+          double distance = Geolocator.distanceBetween(
             currentUser.latitude!,
             currentUser.longitude!,
             user.latitude!,
             user.longitude!,
-          );
+          ) / 1000; // Convert to km
 
           if (distance <= maxDistance) {
             user = user.copyWith(distance: distance.round());
@@ -123,12 +141,13 @@ class MatchProvider extends ChangeNotifier {
         }
       }
 
-      // Sort by distance
+      // Sort by distance (if available)
       users.sort((a, b) => (a.distance ?? 999).compareTo(b.distance ?? 999));
 
       _potentialMatches = users;
     } catch (e) {
       _error = e.toString();
+      print('Error loading matches: $e');
     }
 
     _isLoading = false;
@@ -144,22 +163,18 @@ class MatchProvider extends ChangeNotifier {
       final matchDoc = await matchRef.get();
 
       if (matchDoc.exists) {
-        // Update existing match
         final matchData = matchDoc.data() as Map<String, dynamic>;
         final match = MatchModel.fromMap(matchData);
 
         if (match.userId2 == currentUserId && match.status == MatchStatus.pending) {
-          // It's a match!
           await matchRef.update({
             'status': MatchStatus.matched.index,
             'isMatched': true,
           });
 
-          // Create chat room
           await _createChatRoom(matchId, currentUserId, targetUserId);
         }
       } else {
-        // Create new like
         await matchRef.set({
           'id': matchId,
           'userId1': currentUserId,
@@ -171,7 +186,6 @@ class MatchProvider extends ChangeNotifier {
         });
       }
 
-      // Remove from potential matches
       _potentialMatches.removeWhere((user) => user.id == targetUserId);
       notifyListeners();
 
@@ -205,14 +219,12 @@ class MatchProvider extends ChangeNotifier {
     }
   }
 
-  // Generate match ID (consistent order)
   String _generateMatchId(String uid1, String uid2) {
     List<String> ids = [uid1, uid2];
     ids.sort();
     return '${ids[0]}_${ids[1]}';
   }
 
-  // Create chat room
   Future<void> _createChatRoom(String matchId, String uid1, String uid2) async {
     await _firestore.collection('chats').doc(matchId).set({
       'id': matchId,
@@ -223,7 +235,6 @@ class MatchProvider extends ChangeNotifier {
     });
   }
 
-  // Load matches for current user
   Future<void> loadMatches(String currentUserId) async {
     _isLoading = true;
     notifyListeners();
@@ -254,7 +265,6 @@ class MatchProvider extends ChangeNotifier {
         }),
       ];
 
-      // Sort by last message time
       _matches.sort((a, b) =>
           (b.lastMessageAt ?? DateTime.now()).compareTo(a.lastMessageAt ?? DateTime.now())
       );
@@ -267,7 +277,6 @@ class MatchProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Get matched user details
   Future<UserModel?> getMatchedUser(String matchId, String currentUserId) async {
     try {
       final matchDoc = await _firestore.collection('matches').doc(matchId).get();
@@ -288,7 +297,6 @@ class MatchProvider extends ChangeNotifier {
     }
   }
 
-  // Clear potential matches
   void clearPotentialMatches() {
     _potentialMatches.clear();
     notifyListeners();

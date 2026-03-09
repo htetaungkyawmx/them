@@ -17,9 +17,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-
   late final List<Widget> _screens;
-  final PageController _pageController = PageController();
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -30,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProfileScreen(),
     ];
 
-    // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInitialData();
     });
@@ -45,10 +43,22 @@ class _HomeScreenState extends State<HomeScreen> {
       await matchProvider.loadPotentialMatches(authProvider.currentUser!.id);
       await matchProvider.loadMatches(authProvider.currentUser!.id);
     }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
@@ -98,12 +108,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
 }
 
 // Discover Screen
@@ -118,7 +122,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   final PageController _pageController = PageController();
   bool _showFilters = false;
 
-  // Filter values
   int _maxDistance = 50;
   RangeValues _ageRange = const RangeValues(18, 50);
   String _selectedGender = 'Everyone';
@@ -134,7 +137,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          // Filter Button
           IconButton(
             icon: const Icon(Icons.tune),
             onPressed: () {
@@ -143,7 +145,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               });
             },
           ),
-          // Refresh Button
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -162,130 +163,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       ),
       body: Column(
         children: [
-          // Filters Panel
           if (_showFilters)
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Filters',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Distance
-                  Text('Max Distance: $_maxDistance km'),
-                  Slider(
-                    value: _maxDistance.toDouble(),
-                    min: 1,
-                    max: 100,
-                    divisions: 99,
-                    activeColor: AppColors.primary,
-                    onChanged: (value) {
-                      setState(() {
-                        _maxDistance = value.round();
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Age Range
-                  Text('Age: ${_ageRange.start.round()} - ${_ageRange.end.round()}'),
-                  RangeSlider(
-                    values: _ageRange,
-                    min: 18,
-                    max: 80,
-                    divisions: 62,
-                    activeColor: AppColors.primary,
-                    onChanged: (values) {
-                      setState(() {
-                        _ageRange = values;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Gender
-                  const Text('Show:'),
-                  DropdownButton<String>(
-                    value: _selectedGender,
-                    isExpanded: true,
-                    items: ['Everyone', 'Male', 'Female'].map((gender) {
-                      return DropdownMenuItem(
-                        value: gender,
-                        child: Text(gender),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedGender = value!;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Apply Button
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _showFilters = false;
-                            });
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            if (authProvider.currentUser != null) {
-                              matchProvider.loadPotentialMatches(
-                                authProvider.currentUser!.id,
-                                maxDistance: _maxDistance,
-                                ageMin: _ageRange.start.toInt(),
-                                ageMax: _ageRange.end.toInt(),
-                                gender: _selectedGender == 'Everyone' ? null : _selectedGender,
-                              );
-                            }
-                            setState(() {
-                              _showFilters = false;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                          ),
-                          child: const Text('Apply'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-          // Main Content
+            _buildFilters(authProvider, matchProvider),
           Expanded(
             child: matchProvider.isLoading && matchProvider.potentialMatches.isEmpty
                 ? const Center(
@@ -299,42 +178,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
             )
                 : matchProvider.potentialMatches.isEmpty
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.sentiment_dissatisfied,
-                    size: 80,
-                    color: AppColors.textSecondary.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No more profiles',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Check back later or adjust your filters',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (authProvider.currentUser != null) {
-                        matchProvider.loadPotentialMatches(
-                          authProvider.currentUser!.id,
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                    child: const Text('Refresh'),
-                  ),
-                ],
-              ),
-            )
+                ? _buildEmptyState(authProvider, matchProvider)
                 : PageView.builder(
               controller: _pageController,
               itemCount: matchProvider.potentialMatches.length,
@@ -348,9 +192,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         authProvider.currentUser!.id,
                         user.id,
                       );
-
-                      // Show match animation if matched
-                      // You can implement a dialog or animation here
                     }
                   },
                   onPass: () {
@@ -365,6 +206,174 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilters(AuthProvider authProvider, MatchProvider matchProvider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Filters',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+
+          Text('Max Distance: $_maxDistance km'),
+          Slider(
+            value: _maxDistance.toDouble(),
+            min: 1,
+            max: 100,
+            divisions: 99,
+            activeColor: AppColors.primary,
+            onChanged: (value) {
+              setState(() {
+                _maxDistance = value.round();
+              });
+            },
+          ),
+
+          const SizedBox(height: 8),
+
+          Text('Age: ${_ageRange.start.round()} - ${_ageRange.end.round()}'),
+          RangeSlider(
+            values: _ageRange,
+            min: 18,
+            max: 80,
+            divisions: 62,
+            activeColor: AppColors.primary,
+            onChanged: (values) {
+              setState(() {
+                _ageRange = values;
+              });
+            },
+          ),
+
+          const SizedBox(height: 8),
+
+          const Text('Show:'),
+          DropdownButton<String>(
+            value: _selectedGender,
+            isExpanded: true,
+            items: ['Everyone', 'Male', 'Female'].map((gender) {
+              return DropdownMenuItem(
+                value: gender,
+                child: Text(gender),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedGender = value!;
+              });
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showFilters = false;
+                    });
+                  },
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (authProvider.currentUser != null) {
+                      matchProvider.loadPotentialMatches(
+                        authProvider.currentUser!.id,
+                        maxDistance: _maxDistance,
+                        ageMin: _ageRange.start.toInt(),
+                        ageMax: _ageRange.end.toInt(),
+                        gender: _selectedGender == 'Everyone' ? null : _selectedGender,
+                      );
+                    }
+                    setState(() {
+                      _showFilters = false;
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Apply'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(AuthProvider authProvider, MatchProvider matchProvider) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.sentiment_dissatisfied,
+            size: 80,
+            color: AppColors.textSecondary.withOpacity(0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No more profiles',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            !matchProvider.hasLocationPermission
+                ? 'Enable location to find people near you'
+                : 'Check back later or adjust your filters',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          if (!matchProvider.hasLocationPermission)
+            ElevatedButton(
+              onPressed: () {
+                matchProvider.getCurrentLocation();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Enable Location'),
+            )
+          else
+            ElevatedButton(
+              onPressed: () {
+                if (authProvider.currentUser != null) {
+                  matchProvider.loadPotentialMatches(
+                    authProvider.currentUser!.id,
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+              ),
+              child: const Text('Refresh'),
+            ),
         ],
       ),
     );

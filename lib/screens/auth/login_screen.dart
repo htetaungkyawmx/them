@@ -279,6 +279,39 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  // _handleGoogleSignIn method ကို ဒီလိုပြင်ပါ
+  void _handleGoogleSignIn() async {
+    final provider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    final success = await provider.signInWithGoogle(context);
+
+    if (mounted) {
+      // Close loading dialog
+      Navigator.pop(context);
+
+      if (!success) {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Google sign in failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      // If success, navigation is handled in AuthProvider
+    }
+  }
+
+// _handleSignIn method ကိုလည်း ဒီလိုပြင်ပါ
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<AuthProvider>(context, listen: false);
@@ -302,7 +335,6 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pop(context); // Close loading dialog
 
         if (!success) {
-          // Show error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(provider.error ?? 'Login failed'),
@@ -310,34 +342,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           );
         }
-      }
-    }
-  }
-
-  void _handleGoogleSignIn() async {
-    final provider = Provider.of<AuthProvider>(context, listen: false);
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      ),
-    );
-
-    final success = await provider.signInWithGoogle(context);
-
-    if (mounted) {
-      Navigator.pop(context); // Close loading dialog
-
-      if (!success) {
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(provider.error ?? 'Google sign in failed'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }

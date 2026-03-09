@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 2)); // Show splash for 2 seconds
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
@@ -33,10 +33,10 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (authProvider.isAuthenticated) {
       print('➡️ Navigating to Home');
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
     } else {
       print('➡️ Navigating to Login');
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
     }
   }
 
@@ -52,7 +52,6 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo
             Container(
               width: 120,
               height: 120,
@@ -74,7 +73,6 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            // App Name
             Text(
               AppStrings.appName,
               style: const TextStyle(
@@ -85,7 +83,6 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 10),
-            // Tagline
             Text(
               'Find your perfect match',
               style: TextStyle(
@@ -94,7 +91,6 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 50),
-            // Loading Indicator
             const CircularProgressIndicator(
               color: Colors.white,
             ),

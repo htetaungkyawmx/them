@@ -12,18 +12,27 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyDpHBtnn8NgTnVbpkxqhXmIZG5Z8xc9Blg",
-        appId: "1:176595574923:android:05df99ee9bda4d4c90f48e",
-        messagingSenderId: "176595574923",
-        projectId: "them-dating-app",
-        storageBucket: "them-dating-app.firebasestorage.app",
-      ),
-    );
-    print('Firebase initialized successfully');
+    // Firebase ကို initialize လုပ် (Options မပါဘဲ)
+    await Firebase.initializeApp();
+    print('✅ Firebase initialized successfully');
   } catch (e) {
-    print('Error initializing Firebase: $e');
+    print('❌ Error initializing Firebase: $e');
+
+    // Retry with options if needed
+    try {
+      await Firebase.initializeApp(
+        options: const FirebaseOptions(
+          apiKey: "AIzaSyDpHBtnn8NgTnVbpkxqhXmIZG5Z8xc9Blg",
+          appId: "1:176595574923:android:05df99ee9bda4d4c90f48e",
+          messagingSenderId: "176595574923",
+          projectId: "them-dating-app",
+          storageBucket: "them-dating-app.firebasestorage.app",
+        ),
+      );
+      print('✅ Firebase initialized with options');
+    } catch (e2) {
+      print('❌ Firebase initialization failed completely: $e2');
+    }
   }
 
   runApp(const MyApp());

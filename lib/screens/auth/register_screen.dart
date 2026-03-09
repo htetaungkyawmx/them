@@ -100,6 +100,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (mounted) {
       setState(() => _isLoading = false);
+
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error ?? 'Registration failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

@@ -21,6 +21,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _rememberMe = false;
+  bool _isNavigating = false; // ထပ်ခါထပ်ခါ navigation မဖြစ်အောင်
 
   // Getters
   UserModel? get currentUser => _currentUser;
@@ -60,11 +61,10 @@ class AuthProvider extends ChangeNotifier {
           if (doc.exists) {
             final userData = doc.data() as Map<String, dynamic>;
             _currentUser = UserModel.fromMap(userData);
-            print('✅ User loaded from local storage: ${_currentUser?.email}');
+            print('✅ User loaded from Firestore: ${_currentUser?.email}');
           }
         } catch (e) {
           print('⚠️ Firestore error in loadSavedUser: $e');
-          // If Firestore fails, still try to use local data
           final userJson = prefs.getString('userData');
           if (userJson != null) {
             try {
@@ -118,7 +118,6 @@ class AuthProvider extends ChangeNotifier {
           }
         } catch (e) {
           print('⚠️ Firestore error in auth state change: $e');
-          // Still create user model even if Firestore fails
           _currentUser = UserModel(
             id: firebaseUser.uid,
             email: firebaseUser.email ?? '',
@@ -130,6 +129,14 @@ class AuthProvider extends ChangeNotifier {
             lastActive: DateTime.now(),
           );
         }
+
+        // Save to local storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userId', firebaseUser.uid);
+        if (_currentUser != null) {
+          await prefs.setString('userData', json.encode(_currentUser!.toMap()));
+        }
+
       } catch (e) {
         _error = e.toString();
         print('❌ Error in auth state change: $e');
@@ -137,6 +144,15 @@ class AuthProvider extends ChangeNotifier {
 
       _isLoading = false;
       notifyListeners();
+
+      // Auto navigate to home after successful auth
+      if (!_isNavigating) {
+        _isNavigating = true;
+        // We'll let the UI handle navigation
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _isNavigating = false;
+        });
+      }
     } else {
       _currentUser = null;
       notifyListeners();
@@ -151,6 +167,8 @@ class AuthProvider extends ChangeNotifier {
     String? phoneNumber,
     BuildContext? context,
   }) async {
+    if (_isLoading) return false;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -184,7 +202,6 @@ class AuthProvider extends ChangeNotifier {
         print('✅ User saved to Firestore');
       } catch (e) {
         print('⚠️ Could not save to Firestore: $e');
-        // Continue even if Firestore fails
       }
 
       // Save user ID locally
@@ -201,11 +218,16 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
+      // Navigate to home immediately
       if (context != null && context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+            '/home',
+                (route) => false
+        );
         _showSnackBar(context, '✅ Account created successfully!', Colors.green);
       }
       return true;
+
     } on FirebaseAuthException catch (e) {
       _error = _getErrorMessage(e.code);
       _isLoading = false;
@@ -227,6 +249,8 @@ class AuthProvider extends ChangeNotifier {
     required bool rememberMe,
     BuildContext? context,
   }) async {
+    if (_isLoading) return false;
+
     _isLoading = true;
     _error = null;
     _rememberMe = rememberMe;
@@ -244,7 +268,6 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userCredential.user!.uid);
 
-      // Save credentials if remember me
       if (rememberMe) {
         await _saveCredentials(email, password);
       } else {
@@ -254,11 +277,16 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
+      // Navigate to home immediately
       if (context != null && context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+            '/home',
+                (route) => false
+        );
         _showSnackBar(context, '✅ Welcome back!', Colors.green);
       }
       return true;
+
     } on FirebaseAuthException catch (e) {
       _error = _getErrorMessage(e.code);
       _isLoading = false;
@@ -273,8 +301,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Google Sign In
+  // Google Sign In (Fixed)
   Future<bool> signInWithGoogle(BuildContext context) async {
+    if (_isLoading) return false;
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -297,7 +327,7 @@ class AuthProvider extends ChangeNotifier {
 
       print('✅ Google user selected: ${googleUser.email}');
 
-      // Obtain the auth details from the request
+      // Obtain the auth details
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       // Create a new credential
@@ -306,7 +336,7 @@ class AuthProvider extends ChangeNotifier {
         idToken: googleAuth.idToken,
       );
 
-      // Sign in to Firebase with the credential
+      // Sign in to Firebase
       final userCredential = await _auth.signInWithCredential(credential);
 
       print('✅ Firebase sign in successful: ${userCredential.user?.email}');
@@ -315,7 +345,7 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userId', userCredential.user!.uid);
 
-      // Try to save to Firestore, but continue even if it fails
+      // Check/Create user in Firestore
       try {
         final userDoc = await _firestore.collection('users').doc(userCredential.user!.uid).get();
 
@@ -331,20 +361,27 @@ class AuthProvider extends ChangeNotifier {
           );
           await _firestore.collection('users').doc(userCredential.user!.uid).set(user.toMap());
           print('✅ New user created in Firestore from Google');
+
+          // Save to local storage
+          await prefs.setString('userData', json.encode(user.toMap()));
         }
       } catch (e) {
         print('⚠️ Could not access Firestore: $e');
-        // Continue anyway - user is authenticated
       }
 
       _isLoading = false;
       notifyListeners();
 
+      // Navigate to home immediately
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+            '/home',
+                (route) => false
+        );
         _showSnackBar(context, '✅ Signed in with Google!', Colors.green);
       }
       return true;
+
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
@@ -390,12 +427,10 @@ class AuthProvider extends ChangeNotifier {
         print('⚠️ Could not update Firestore: $e');
       }
 
-      // Update Firebase Auth display name if changed
       if (updatedUser.name != _currentUser?.name) {
         await _auth.currentUser?.updateDisplayName(updatedUser.name);
       }
 
-      // Save to local storage
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('userData', json.encode(updatedUser.toMap()));
 
@@ -410,37 +445,6 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       _showSnackBar(context, '❌ Update failed', Colors.red);
-    }
-  }
-
-  // Update phone number (Optional)
-  Future<void> updatePhoneNumber(String phoneNumber, BuildContext context) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      if (_currentUser != null) {
-        try {
-          await _firestore.collection('users').doc(_currentUser!.id).update({
-            'phoneNumber': phoneNumber,
-          });
-        } catch (e) {
-          print('⚠️ Could not update Firestore: $e');
-        }
-        _currentUser = _currentUser!.copyWith(phoneNumber: phoneNumber);
-
-        // Save to local storage
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('userData', json.encode(_currentUser!.toMap()));
-      }
-
-      _isLoading = false;
-      notifyListeners();
-      _showSnackBar(context, '✅ Phone number updated', Colors.green);
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      _showSnackBar(context, '❌ Failed to update phone number', Colors.red);
     }
   }
 
@@ -490,7 +494,7 @@ class AuthProvider extends ChangeNotifier {
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -505,12 +509,16 @@ class AuthProvider extends ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('userId');
+      await prefs.remove('userData');
 
       _currentUser = null;
       notifyListeners();
 
       if (context.mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login',
+                (route) => false
+        );
         _showSnackBar(context, '👋 Logged out successfully', Colors.blue);
       }
 
