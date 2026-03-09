@@ -9,6 +9,9 @@ import 'package:them_dating_app/screens/matches/matches_screen.dart';
 import 'package:them_dating_app/screens/profile/edit_profile_screen.dart';
 import 'package:them_dating_app/screens/profile/profile_screen.dart';
 import 'package:them_dating_app/screens/splash_screen.dart';
+import 'package:them_dating_app/screens/video_call/room_list_screen.dart';
+import 'package:them_dating_app/screens/video_call/webrtc_call_screen.dart';
+import 'package:them_dating_app/screens/video_call/webrtc_group_call_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -21,6 +24,9 @@ class AppRoutes {
   static const String chat = '/chat';
   static const String profile = '/profile';
   static const String editProfile = '/edit-profile';
+  static const String videoRooms = '/video-rooms';
+  static const String videoCall = '/video-call';
+  static const String groupCall = '/group-call';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -55,6 +61,7 @@ class AppRoutes {
             matchId: args['matchId'],
             userId: args['userId'],
             userName: args['userName'],
+            userPhoto: args['userPhoto'],
           ),
         );
 
@@ -63,6 +70,36 @@ class AppRoutes {
 
       case editProfile:
         return MaterialPageRoute(builder: (_) => const EditProfileScreen());
+
+      case videoRooms:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => RoomListScreen(
+            currentUserId: args['userId'],
+            currentUserName: args['userName'],
+          ),
+        );
+
+      case videoCall:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => WebRTCCallScreen(
+            roomId: args['roomId'],
+            userName: args['userName'],
+            userId: args['userId'],
+          ),
+        );
+
+      case groupCall:
+        final args = settings.arguments as Map<String, dynamic>;
+        return MaterialPageRoute(
+          builder: (_) => WebRTCGroupCallScreen(
+            roomId: args['roomId'],
+            userName: args['userName'],
+            userId: args['userId'],
+            isHost: args['isHost'] ?? false,
+          ),
+        );
 
       default:
         return MaterialPageRoute(

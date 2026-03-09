@@ -451,9 +451,20 @@ class WebRTCService {
     }
   }
 
+  // FIXED: switchCamera method
   Future<void> switchCamera() async {
     if (_localStream != null) {
-      await Helper.switchCamera(_localStream!);
+      try {
+        // Get the video track
+        final videoTracks = _localStream!.getVideoTracks();
+        if (videoTracks.isNotEmpty) {
+          // Switch camera using the track
+          await videoTracks.first.switchCamera();
+        }
+      } catch (e) {
+        print('Error switching camera: $e');
+        onError?.call('Failed to switch camera');
+      }
     }
   }
 

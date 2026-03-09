@@ -38,7 +38,7 @@ class _WebRTCGroupCallScreenState extends State<WebRTCGroupCallScreen> {
 
   Future<void> _initializeCall() async {
     await _webrtcService.initializeRenderers();
-    await _webrtcService.connectToSignalingServer('ws://YOUR_SERVER_IP:3001');
+    await _webrtcService.connectToSignalingServer('ws://192.168.1.12:3001');
 
     _webrtcService.onParticipantsUpdate = (participants) {
       setState(() {

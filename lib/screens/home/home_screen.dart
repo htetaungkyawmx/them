@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:them_dating_app/config/routes.dart';
 import 'package:them_dating_app/core/constants/app_colors.dart';
+import 'package:them_dating_app/core/theme/theme_provider.dart';
 import 'package:them_dating_app/providers/auth_provider.dart';
 import 'package:them_dating_app/providers/match_provider.dart';
 import 'package:them_dating_app/screens/home/widgets/profile_card.dart';
 import 'package:them_dating_app/screens/matches/matches_screen.dart';
 import 'package:them_dating_app/screens/profile/profile_screen.dart';
+import 'package:them_dating_app/screens/chat/chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _screens = [
       const DiscoverScreen(),
       const MatchesScreen(),
+      const ChatListScreen(), // Now includes Video Rooms tab
       const ProfileScreen(),
     ];
 
@@ -41,7 +44,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (authProvider.currentUser != null) {
       try {
-        // Try to get location, but don't fail if it doesn't work
         await matchProvider.getCurrentLocation();
         await matchProvider.loadPotentialMatches(authProvider.currentUser!.id);
         await matchProvider.loadMatches(authProvider.currentUser!.id);
@@ -60,6 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(
@@ -103,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? Colors.grey[900] : Colors.white,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -121,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.textSecondary,
+          unselectedItemColor: isDark ? Colors.white70 : AppColors.textSecondary,
           showSelectedLabels: true,
           showUnselectedLabels: true,
           items: const [
@@ -136,6 +140,11 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Matches',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              activeIcon: Icon(Icons.chat_bubble),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: 'Profile',
@@ -147,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Discover Screen
+// Discover Screen (keep as is)
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
 
@@ -253,7 +262,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Provider.of<ThemeProvider>(context).isDarkMode
+            ? Colors.grey[900]
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -372,7 +383,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           Icon(
             Icons.sentiment_dissatisfied,
             size: 80,
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: Provider.of<ThemeProvider>(context).isDarkMode
+                ? Colors.white24
+                : Colors.black12,
           ),
           const SizedBox(height: 16),
           Text(
@@ -384,7 +397,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             !matchProvider.hasLocationPermission
                 ? 'Enable location to find people near you'
                 : 'Check back later or adjust your filters',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(
+              color: Provider.of<ThemeProvider>(context).isDarkMode
+                  ? Colors.white38
+                  : Colors.black38,
+            ),
           ),
           const SizedBox(height: 24),
           if (!matchProvider.hasLocationPermission)
